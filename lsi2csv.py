@@ -1,8 +1,19 @@
-import csv
+import csv,os
 import random,string,datetime
+from ftplib import FTP
+'''penmanLsiDir
+penmanTargetDir
+tabCaption="pen"  in the penmanLsi2CsvIteration()
+'''
 from dateutil.parser import parse
-directory= r"C:\Users\office22\Desktop\zmani\agricultCSV"
+
 structFile= r".\stationStruct.csv"
+lsiServer= "2.55.89.1"
+ftpUser= "shamat"
+ftppsw= "23enViro23"
+ftpport= 21
+
+
 def makeFileName(stationName, destFolder, datetime):
     formatStr="fromLSI-"
     zeroChar = ""
@@ -131,8 +142,73 @@ def getBySFTP5Latest(sftp, localdir, preserve_mtime=False):
    #              os.mkdir(localpath)
    #          except OSError:
    #              pass
+############################################################
+def ftpDownload5Latest(ip, port, user, psw, targetDir):
+    print("FTP download of 5 latest files. user:",user)
+    ftp = FTP()
+    try:
+        ftp.connect(ip, port)
+        ftp.login(user, psw)
 
+        cnt=0
 
+        for k in range(5):
+            latest_time = None
+            latest_name = None
+            # get filenames within the directory
+            filenames = ftp.nlst()
+            if len(filenames) == 0:
+                print("no files")
+                return getListOfFullPath(targetDir)  # no files -exit
+           # print(filenames)
+            file=None
+            for filename in filenames:
+                local_filename = os.path.join(targetDir, filename)
+                file = open(local_filename, 'wb')
+                time = ftp.sendcmd("MDTM " + filename)
+                if (latest_time is None) or (time > latest_time):
+                    latest_name = filename
+                    latest_time = time
+                #     ftp.retrbinary('RETR ' + filename, file.write)
+                #     ftp.delete(filename)
+
+            ftp.retrbinary('RETR ' + latest_name, file.write)
+            ftp.delete(latest_name)
+            cnt +=1
+          #
+            print(f"File '{latest_name}' \n   (latest) is succesfully downloaded and deleted on source")
+
+        ftp.close()
+
+        print("ftp download session is closed")
+    except  TimeoutError as ftperr:
+        print("ftp error. cannot connect to bika")
+    return getListOfFullPath(targetDir)
+##########################################
+def getListOfFullPath(directory):
+    import os
+    from os import listdir
+    from os.path import isfile, join
+
+    cwd = directory
+    onlyfiles = [os.path.join(cwd, f) for f in os.listdir(cwd) if
+                 os.path.isfile(os.path.join(cwd, f))]
+    return onlyfiles
+
+def penmanLsi2CsvIteration():
+   penmanLsiDir = r"D:\import Penman\lsi"
+   penmanTargetDir = r"D:\import Penman\csv"
+   tabCaption = "pen"
+   fileList= ftpDownload5Latest(lsiServer,ftpport,ftpUser,ftppsw,penmanLsiDir)
+   cntLsi=0
+   cntCsv=0
+   if len (fileList) >0:
+       for f in fileList:
+           n= lsi2csv(f,penmanTargetDir)
+           cntCsv+=n
+           cntLsi+=1
+
+   print(f"succesfully created {cntCsv} csv files from {cntLsi} lsi")
 #####################################
 
 structFile= r".\stationStruct.csv"
@@ -140,22 +216,7 @@ structFile= r".\stationStruct.csv"
 #str1= getHeadString("penman")
 #str2= getValString("164,05/07/2023 00:00:00,6.800000,1,7.900000,1,6.800000,1,")
 #line= "164,05/07/2023 00:00:00,6.800000,1,7.900000,1,6.800000,1,"
-file=r"C:\Users\office22\Desktop\zmani\05_07_2023 16_41.lsi"
-n= lsi2csv(file,directory)
-print (f"{n} csv files were created")
+file=r"D:\import Penman\lsi\05_07_2023 16_56.lsi"
+lsi2csv(file,r"D:\import Penman\csv")
+
 #####################
-print ("@@@@@@    sftp section    @@@@@@@@@")
-import pysftp as sftp
-import os
-import pysftp
-from stat import S_IMODE, S_ISDIR, S_ISREG
-
-cnopts = pysftp.CnOpts()
-cnopts.hostkeys = None
-sftp=pysftp.Connection('2.55.89.1', username='shamatpen',password='23enViro23',cnopts=cnopts)
-
-
-
-local_path=r"C:\Users\office22\Desktop\Agicult proj"
-
-getBySFTP5Latest(sftp,  local_path, preserve_mtime=False)
