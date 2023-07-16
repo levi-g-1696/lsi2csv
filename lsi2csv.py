@@ -188,7 +188,7 @@ def ftpDownload5Latest(ip, port, user, psw, targetDir):
 def getListOfFullPath(directory):
     import os
     from os import listdir
-    from os.path import isfile, join
+    from os.path import isfile,   join
 
     cwd = directory
     onlyfiles = [os.path.join(cwd, f) for f in os.listdir(cwd) if
