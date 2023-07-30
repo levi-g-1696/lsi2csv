@@ -1,5 +1,6 @@
 import csv,os
 import random,string,datetime
+import shutil, random
 from ftplib import FTP
 '''penmanLsiDir
 penmanTargetDir
@@ -197,16 +198,23 @@ def getListOfFullPath(directory):
 
 def penmanLsi2CsvIteration():
    penmanLsiDir = r"D:\import Penman\lsi"
+   penmanLsiArc=r"D:\import Penman\penman lsi  arc"
    penmanTargetDir = r"D:\import Penman\csv"
    tabCaption = "pen"
    fileList= ftpDownload5Latest(lsiServer,ftpport,ftpUser,ftppsw,penmanLsiDir)
    cntLsi=0
    cntCsv=0
+   print ("filelist:",fileList)
    if len (fileList) >0:
        for f in fileList:
            n= lsi2csv(f,penmanTargetDir)
            cntCsv+=n
            cntLsi+=1
+           int4=random.randint(1000,9999)
+           sufix=str(int4)+".lsi"
+           fname= os.path.basename(f)
+           shutil.move(f,penmanLsiArc+"\\"+fname +sufix)
+           os.rename()
 
    print(f"succesfully created {cntCsv} csv files from {cntLsi} lsi")
 #####################################
@@ -216,7 +224,7 @@ structFile= r".\stationStruct.csv"
 #str1= getHeadString("penman")
 #str2= getValString("164,05/07/2023 00:00:00,6.800000,1,7.900000,1,6.800000,1,")
 #line= "164,05/07/2023 00:00:00,6.800000,1,7.900000,1,6.800000,1,"
-file=r"D:\import Penman\lsi\05_07_2023 16_56.lsi"
-lsi2csv(file,r"D:\import Penman\csv")
-
+#file=r"D:\import Penman\lsi\05_07_2023 16_56.lsi"
+#lsi2csv(file,r"D:\import Penman\csv")
+penmanLsi2CsvIteration()
 #####################
