@@ -1,8 +1,12 @@
 ###++++++++++++++++++++++++++++++++++++
 import csv
 import os
+import shutil
+import string
 import time
 from collections import namedtuple
+import random
+
 config= namedtuple("config","enable stationName tabTag folder stationType ")
 
 def RemoveFilesFrom(path):
@@ -111,7 +115,7 @@ def columnReader(file,colname):
                 line_count += 1
     return colNList #returns only the column values without header
 ########################################################
-def getLines(datFile):
+def getLines(datFile):   # specialy for cr1000 dat files . read it and returs list of data lines only
     try:
         time.sleep(0.02)
         with open(datFile) as f:
@@ -132,17 +136,25 @@ def getLines(datFile):
             return lines
 ###################################################
 def getLinesByFolder(folder)   :
+  randomStr = ''.join(random.choices(string.digits + string.ascii_letters, k=5))
+  arcfolder= folder+"\\newDatArc"
   dataLines=[]
   fileList= getListOfFullPath(folder)
   for f in fileList:
       lst= getLines(f)
       dataLines= dataLines +lst
       print ("extracting data from file:",f)
-
+  arcpath = os.path.join(folder, "newDatArc")
+  if not os.path.exists(arcpath):
+      print ("make",arcpath)
+      os.mkdir(arcpath)
   for f in fileList:
-      # move f to arc
-      pass
-      #move f to arc
+      newpath=os.path.join(arcfolder, f)
+      print ("arcfolder", arcfolder, "   newpath",newpath)
+      f1= f+"."+randomStr+".dat"
+      shutil.move(f,f1)
+      shutil.move(f1,arcpath)
+
   return dataLines
 
 ##########################################
@@ -155,3 +167,7 @@ def getListOfFullPath(directory):
     onlyfiles = [os.path.join(cwd, f) for f in os.listdir(cwd) if
                  os.path.isfile(os.path.join(cwd, f))]
     return onlyfiles
+#
+# fol= "D:\pytst"
+# lst= getLinesByFolder(fol)
+# print (lst)

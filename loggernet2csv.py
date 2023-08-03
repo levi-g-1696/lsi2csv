@@ -84,11 +84,11 @@ def getCsvFiles(configFile):
 
 
       destfile = makeFileName(tabTag, dest, datetime.datetime.now())
-      with open(destfile, "a") as myfile:
+      with open(destfile, "a",newline='') as myfile:
         myfile.write(str1 + "\n")
         for line in csvDataLines:
 
-          myfile.write(line + "\n")
+          myfile.write(line )
           print(line)
           print(f"loggernet data line {line} \nwas succesfuly written to  {destfile}")
 
