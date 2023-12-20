@@ -1,23 +1,26 @@
 import csv,os
 import random,string,datetime
+import logging
 from ftplib import FTP
-from tools import confreader, config, columnReader, getLinesByFolder
+from tools import confreader, config, columnReader, getLinesByFolder, updateTheLastUpdateTable
 
 from dateutil.parser import parse
-
+logfile= r".\Log\parsing.log"
 structFile= r".\stationStruct.csv"
+#lastUpdateFile=r".\Log\lastUpdare.csv"
 # lsiServer= "2.55.89.1"
 # ftpUser= "shamat"
 # ftppsw= "23enViro23"
 # ftpport= 21
 
 
-def makeFileName(stationName, destFolder, datetime):
+def makeFileName(stationName, destFolder):
+    time= datetime.datetime.now()
     formatStr="fromLogntDAT-"
     zeroChar = ""
-    if (datetime.month < 10): zeroChar = "0"
+    if (time.month < 10): zeroChar = "0"
 
-    fullFilePath = destFolder + "\\" + stationName + "."+formatStr + str(datetime.year) + zeroChar + str(datetime.month) + str(datetime.day) + "." + str(datetime.hour) + str(datetime.minute)
+    fullFilePath = destFolder + "\\" + stationName + "." + formatStr + str(time.year) + zeroChar + str(time.month) + str(time.day) + "." + str(time.hour) + str(time.minute)
     randomStr = ''.join(random.choices(string.digits + string.ascii_letters, k=5))
     fullFilePath = fullFilePath + "-" + randomStr + ".csv"
     return fullFilePath
@@ -66,31 +69,39 @@ def getValString(tabName,line):
        st= st+ ','+ str(val)
     return st
 ##################################
-def getCsvFiles(configFile):
+def cr1000ToCsv(configFile, destFolder):
     conf= confreader(configFile)
     tabTagList= conf.tabTag
     foldersList=conf.folder
     stationTypeList= conf.stationType
+    logging.basicConfig(filename=logfile, level=logging.INFO, filemode = 'a',format='%(asctime)s %(message)s',
+                        datefmt='%d/%m/%Y %H:%M:%S')
 
     for i in range (len(tabTagList)):
       tabTag= tabTagList[i]
       tabType="asHulda"
       str1= getHeadString(stationTypeList[i])
       rawDataLines= getLinesByFolder(foldersList[i])
-      csvDataLines=[]
-      for line in rawDataLines:
-         str2 = getValString(tabTag,line)
-         csvDataLines.append(str2)
+      if len (rawDataLines) >0:
+          csvDataLines=[]
+          for line in rawDataLines:
+             str2 = getValString(tabTag,line)
+             csvDataLines.append(str2)
 
+          print (i, tabTag)
+          destfile = makeFileName(tabTag, destFolder)
+          with open(destfile, "a",newline='') as myfile:
+            myfile.write(str1 + "\n")
+            for line in csvDataLines:
 
-      destfile = makeFileName(tabTag, dest, datetime.datetime.now())
-      with open(destfile, "a",newline='') as myfile:
-        myfile.write(str1 + "\n")
-        for line in csvDataLines:
-
-          myfile.write(line )
-          print(line)
-          print(f"loggernet data line {line} \nwas succesfuly written to  {destfile}")
+              myfile.write(line )
+              print(line)
+              modifLine= line[0:35].replace(",","_") +'..'
+              modifLine= modifLine.replace("\n","")
+              logString=f"loggernet data line {modifLine} was succesfuly written to  {destfile}"
+              print(logString)
+              logging.info(","+logString+"," +tabTag)
+              updateTheLastUpdateTable(tabTag)
 
 #
 #
@@ -105,7 +116,7 @@ def getListOfFullPath(directory):
     return onlyfiles
 
 
-structFile= r".\stationStruct.csv"
+
 
 #str1= getHeadString("penman")
 #str2= getValString("164,05/07/2023 00:00:00,6.800000,1,7.900000,1,6.800000,1,")
@@ -115,8 +126,8 @@ structFile= r".\stationStruct.csv"
 
 #####################
 #name= "a31"
-dest= ".\\work"
+destFolder= r"D:\import loggernet\10min"
 #file= ".\\work\\Hulda10m_2023_07_26_1030.dat"
 now=  datetime.datetime.now()
 
-getCsvFiles(".\\config.csv")
+#cr1000ToCsv(".\\config.csv", destFolder)

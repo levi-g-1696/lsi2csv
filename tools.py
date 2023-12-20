@@ -1,13 +1,16 @@
 ###++++++++++++++++++++++++++++++++++++
 import csv
+import datetime
 import os
 import shutil
 import string
 import time
 from collections import namedtuple
 import random
+lastUpdateFile=r".\Log\lastUpdate.csv"
 
 config= namedtuple("config","enable stationName tabTag folder stationType ")
+
 
 def RemoveFilesFrom(path):
     print("is removing from", path)
@@ -167,6 +170,25 @@ def getListOfFullPath(directory):
     onlyfiles = [os.path.join(cwd, f) for f in os.listdir(cwd) if
                  os.path.isfile(os.path.join(cwd, f))]
     return onlyfiles
+def writeToCsvByKey(file,keyColName,key,valColName,val):
+    #here key is the first column
+    import csv
+    import pandas
+    import pandas as pd
+   # csvfile= ".\\lastUpdate.csv"
+    df = pd.read_csv(file)
+    rawNum= df[df[keyColName]==key].index.item()
+    df.at[rawNum, valColName] = val
+
+    print(df)
+    df.drop(df.columns[df.columns.str.contains('unnamed', case=False)], axis=1, inplace=True)
+    df.to_csv(file, index=False)
+def updateTheLastUpdateTable(tab):
+    file=lastUpdateFile
+    keyColName = "TabTag"
+    valColumnName= "LastUpdateTime"
+    date_string = f'{datetime.datetime.now():%Y-%m-%d %H:%M:%S}'
+    writeToCsvByKey(file,keyColName,tab,valColumnName,date_string)
 #
 # fol= "D:\pytst"
 # lst= getLinesByFolder(fol)

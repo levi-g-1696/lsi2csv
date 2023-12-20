@@ -1,0 +1,13 @@
+{
+  "sourceDirectoryLg": "D:\\im",
+  "sourceDirectoryLsi": "D:\\im",
+  "sourceDirectoryPenman": "D:\\import Penman\\csv",
+  "runFlag": "run",
+  "stationsStruct": "D:\\validation data\\dbStruct.csv",
+  "logFile": "C:\\Users\\DownloadServer\\PycharmProjects\\lsi2csv\\Log\\parsing.log",
+  "arcDir": "D:\\import loggernet\\csv arc 10min",
+  "arcDir4Penman": "D:\\import Penman\\penman csv arc",
+  "destination10m": "D:\\import loggernet\\10min-test",
+  "penman_target_dir": "D:\\import Penman\\csv24h",
+  "ims_files_target_dir": "D:\\import Shamat\\csv24h"
+}

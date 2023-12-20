@@ -2,19 +2,27 @@ import csv,os
 import random,string,datetime
 import shutil, random
 from ftplib import FTP
+
+import global_config
+
 '''penmanLsiDir
 penmanTargetDir
 tabCaption="pen"  in the penmanLsi2CsvIteration()
 '''
 from dateutil.parser import parse
 
-structFile= r".\stationStruct.csv"
+structFile= r".\stationStructV2.csv"
 lsiServer= "2.55.89.1"
 ftpUser= "shamat"
 ftppsw= "23enViro23"
 ftpport= 21
-
-
+# penman_stations= [104,114,115,116,117,118,119,120,121,122,123,124,125,128,129,130,
+#                   131,132,133,134,135,136,137,139,140,141,142,143,144,147,197,198,
+#                   199,200,201,202,205,210,228,229,231,232,233,234,235,236,237,238,239,304,310]
+# #Zova24 - 19,  negba24- 27, eden24- 146,zuriel-166, sde boker 40,
+# envitech_stations_24h=[146,166,40,36]
+penman_stations= global_config.penman_stations
+envitech_stations_24h= global_config.envitech_stations_24h
 def makeFileName(stationName, destFolder, datetime):
     formatStr="fromLSI-"
     zeroChar = ""
@@ -29,10 +37,10 @@ def getHeadString(tabType):
     strn= "TabularTag,DateTime"
     lst = columnReader(structFile,tabType)
     for mon in lst:
-        if mon != "":
-          strn = strn + "," + mon
+        if mon == "" or  "disabled"  in mon.lower():
+            continue
+        else:  strn = strn + "," + mon
     return strn
-
 #############################################################
 def getValString(line):
     from dateutil.parser import parse
@@ -42,19 +50,45 @@ def getValString(line):
     lineArr= line.split(",")
     tabName= "pen"+ lineArr[0]
     dateStr=lineArr[1]
-    dt = parse(dateStr)
+    dt = parse(dateStr,dayfirst =True)
 
     dtstr= dt.isoformat()
-    dtstr= dtstr.split(".")[0] #without second
-    st= tabName +","+ dtstr
+    dtstr1= dtstr.split(".")[0] #without second
+
+    st= tabName +","+ dtstr1
     for k in range(2,len(lineArr)-1,2):
        val= lineArr[k] if lineArr[k+1]=="1"  else "-99999"
        st= st+ ','+ str(val)
-
-
-
+    print(f"getValString says: dt={dt}, dtstr={dtstr}", dtstr1,f"   st={st}")
     return st
 ##################################
+def get_val_string_for_shamat(line):
+    from dateutil.parser import parse
+    from datetime import datetime
+
+
+    line_arr= line.split(",")
+    tab_name= "ims"+ line_arr[0]
+    dateStr=line_arr[1]
+    dateStr= dateStr.replace("24:00","23:50")
+    dt = parse(dateStr,dayfirst =True)
+
+    dtstr= dt.isoformat()
+    dtstr1= dtstr.split(".")[0] #without second
+
+    st= tab_name +","+ dtstr1
+    tab_type= tab_name
+    mon_list = columnReader(structFile, tab_type)
+    i =0
+    for k in range(2,len(line_arr)-1,2):
+       if "disabled" not in mon_list[i].lower():
+
+         val= line_arr[k] if line_arr[k+1]=="1"  else "-99999"
+         st= st+ ','+ str(val)
+       i= i+1
+  #  print(f"getValString says: dt={dt}, dtstr={dtstr}", dtstr1,f"   st={st}")
+    return st
+##############################################
 def columnReader(file,colname):
     colNList = []
     colnum = 0
@@ -83,13 +117,15 @@ def columnReader(file,colname):
                 line_count += 1
     return colNList #returns only the column values without header
 ########################################################
-def getCsvFile(line,dir):
-    str1= getHeadString("penman")
+def makePenmanCsvFile(line, dir):
+
 
     str2 = getValString(line)
 
     lineArr= line.split(",")
     tabName= "pen"+ lineArr[0]
+    if tabName =="pen104": str1= getHeadString("penman104")
+    else:str1=getHeadString("penman")
     destfile = makeFileName(tabName, dir, datetime.datetime.now())
     with open(destfile, "a") as myfile:
         myfile.write(str1 + "\n")
@@ -98,24 +134,53 @@ def getCsvFile(line,dir):
     print(f"penman line {str2} \nwas succesfuly written to  {destfile}")
 
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+def make_shamat_csv_file(line, dir):
+
+
+    str2 = get_val_string_for_shamat(line)
+
+    lineArr= line.split(",")
+    tabName= "ims"+ lineArr[0]
+
+    str1=getHeadString(tabName)
+    destfile = makeFileName(tabName, dir, datetime.datetime.now())
+    with open(destfile, "a") as myfile:
+        myfile.write(str1 + "\n")
+        myfile.write(str2 + "\n")
+    print(str2)
+    print(f"shamat line {str2} \nwas succesfuly written to  {destfile}")
+    return destfile
+############################################
 def checkLsiFormat(line):
     return all([c.isdigit() or c == ',' or c=="." or c=="/" or c==":" or c==" " or c=="\n" or c=="-"  for c in line])
 ##############################################
-def lsi2csv(filePath,targetDir):
+def lsi2csv(filePath):
   with open(filePath) as f:
     lines = f.readlines()
-
+  if len(lines) ==0: return 0
+  #checking file format
   for line in lines:
+
     if not checkLsiFormat(line):
         st= set(line)
         print ("not valid character in the file:",filePath)
         print("csv files will be not created")
         print(st)
-        return
+        return 0
   cnt=0
   for line in lines:
-    getCsvFile(line,targetDir)
-    cnt+=1
+      line_field_list = line.split(",")
+      station_num = line_field_list[0]
+      if int(station_num) in penman_stations:
+          print ("penman station:",station_num)
+          makePenmanCsvFile(line, dir="D:\\import Penman\\csv24h")
+      elif  int(station_num)   in envitech_stations_24h:
+          print("envitech station:", station_num)
+          make_shamat_csv_file(line, dir="D:\\import Shamat\\csv24h")
+      else:
+          print("lsi2csv says: not recognized station num:",station_num)
+      cnt+=1
   return cnt
 ###########################################################
 def getBySFTP5Latest(sftp, localdir, preserve_mtime=False):
@@ -196,7 +261,7 @@ def getListOfFullPath(directory):
                  os.path.isfile(os.path.join(cwd, f))]
     return onlyfiles
 
-def penmanLsi2CsvIteration():
+def shamat24hLsiToCsvIteration():
    penmanLsiDir = r"D:\import Penman\lsi"
    penmanLsiArc=r"D:\import Penman\penman lsi  arc"
    penmanTargetDir = r"D:\import Penman\csv"
@@ -207,24 +272,25 @@ def penmanLsi2CsvIteration():
    print ("filelist:",fileList)
    if len (fileList) >0:
        for f in fileList:
-           n= lsi2csv(f,penmanTargetDir)
+           n= lsi2csv(f)
            cntCsv+=n
            cntLsi+=1
-           int4=random.randint(1000,9999)
+           int4=random.randint(1000,9999) #for file name identity
            sufix=str(int4)+".lsi"
            fname= os.path.basename(f)
            shutil.move(f,penmanLsiArc+"\\"+fname +sufix)
-           os.rename()
+       #    os.rename()
 
    print(f"succesfully created {cntCsv} csv files from {cntLsi} lsi")
 #####################################
 
-structFile= r".\stationStruct.csv"
+structFile= r".\stationStructV2.csv"
 
 #str1= getHeadString("penman")
 #str2= getValString("164,05/07/2023 00:00:00,6.800000,1,7.900000,1,6.800000,1,")
 #line= "164,05/07/2023 00:00:00,6.800000,1,7.900000,1,6.800000,1,"
-#file=r"D:\import Penman\lsi\05_07_2023 16_56.lsi"
+#file=r"D:\import Penman\lsi\03_08_2023 06_01.lsi7288.lsi"
 #lsi2csv(file,r"D:\import Penman\csv")
-penmanLsi2CsvIteration()
+
+#penmanLsi2CsvIteration()
 #####################
